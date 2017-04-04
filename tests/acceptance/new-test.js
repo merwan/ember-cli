@@ -11,6 +11,7 @@ let root = process.cwd();
 const util = require('util');
 const EOL = require('os').EOL;
 const chalk = require('chalk');
+const execa = require('../../lib/utilities/execa');
 
 const chai = require('../chai');
 let expect = chai.expect;
@@ -245,6 +246,9 @@ describe('Acceptance: ember new', function() {
   }));
 
   it('ember new without skip-git flag creates .git dir', co.wrap(function *() {
+    process.env.GIT_COMMITTER_EMAIL = 'tomster@emberjs.com'
+    process.env.GIT_COMMITTER_NAME = 'Tomster'
+
     yield ember([
       'new',
       'foo',

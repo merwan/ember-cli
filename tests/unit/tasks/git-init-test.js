@@ -22,6 +22,8 @@ describe('git-init', function() {
       ui: new MockUI(),
       project: new MockProject(),
       _gitVersion: td.function(),
+      _gitEmailConfigured: td.function(),
+      _gitNameConfigured: td.function(),
       _gitInit: td.function(),
       _gitAdd: td.function(),
       _gitCommit: td.function(),
@@ -50,12 +52,16 @@ describe('git-init', function() {
 
   it('correctly initializes git if git is around, and more or less works', function() {
     td.when(task._gitVersion()).thenResolve();
+    td.when(task._gitEmailConfigured()).thenResolve();
+    td.when(task._gitNameConfigured()).thenResolve();
     td.when(task._gitInit()).thenResolve();
     td.when(task._gitAdd()).thenResolve();
     td.when(task._gitCommit(td.matchers.anything())).thenResolve();
 
     return task.run().then(function() {
       td.verify(task._gitVersion());
+      td.verify(task._gitEmailConfigured());
+      td.verify(task._gitNameConfigured());
       td.verify(task._gitInit());
       td.verify(task._gitAdd());
       td.verify(task._gitCommit(td.matchers.anything()));
@@ -65,12 +71,48 @@ describe('git-init', function() {
     });
   });
 
+  it('skips initializing git, if git user email is not configured', function() {
+    td.when(task._gitVersion()).thenResolve();
+    td.when(task._gitEmailConfigured()).thenReject();
+
+    return task.run().then(function() {
+      td.verify(task._gitVersion(), { times: 1 });
+      td.verify(task._gitEmailConfigured(), { times: 1 });
+      td.verify(task._gitNameConfigured(), { times: 0 });
+      td.verify(task._gitInit(), { times: 0 });
+      td.verify(task._gitAdd(), { times: 0 });
+      td.verify(task._gitCommit(td.matchers.anything()), { times: 0 });
+
+      expect(task.ui.output).to.equal('');
+      expect(task.ui.errors).to.contain('Git user email and name should be set.');
+    });
+  });
+
+  it('skips initializing git, if git user name is not configured', function() {
+    td.when(task._gitVersion()).thenResolve();
+    td.when(task._gitEmailConfigured()).thenResolve();
+    td.when(task._gitNameConfigured()).thenReject();
+
+    return task.run().then(function() {
+      td.verify(task._gitVersion(), { times: 1 });
+      td.verify(task._gitEmailConfigured(), { times: 1 });
+      td.verify(task._gitNameConfigured(), { times: 1 });
+      td.verify(task._gitInit(), { times: 0 });
+      td.verify(task._gitAdd(), { times: 0 });
+      td.verify(task._gitCommit(td.matchers.anything()), { times: 0 });
+
+      expect(task.ui.output).to.equal('');
+      expect(task.ui.errors).to.contain('Git user email and name should be set.');
+    });
+  });
 
   it('skips initializing git, if `git --version` fails', function() {
     td.when(task._gitVersion()).thenReject();
 
     return task.run().then(function() {
       td.verify(task._gitVersion(), { times: 1 });
+      td.verify(task._gitEmailConfigured(), { times: 0 });
+      td.verify(task._gitNameConfigured(), { times: 0 });
       td.verify(task._gitInit(), { times: 0 });
       td.verify(task._gitAdd(), { times: 0 });
       td.verify(task._gitCommit(td.matchers.anything()), { times: 0 });
